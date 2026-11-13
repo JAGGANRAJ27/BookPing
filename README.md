@@ -38,17 +38,6 @@ BookPing is an Android application designed to help students keep track of their
 6. Repeat reminders continue while the book remains issued.
 7. After the book is returned and the OPAC sync reflects the return, the corresponding reminders are cancelled.
 
-## Screenshots
-
-Add your application screenshots here as the UI develops.
-
-| Home Screen | Book Details |
-|---|---|
-| *Add screenshot* | *Add screenshot* |
-
-| Notification | Settings |
-|---|---|
-| *Add screenshot* | *Add screenshot* |
 
 ## Getting Started
 
