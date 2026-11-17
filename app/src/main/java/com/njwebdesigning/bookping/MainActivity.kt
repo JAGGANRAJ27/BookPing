@@ -39,29 +39,25 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-
-// ----------------------------------------------------
-// THEME COLORS
-// ----------------------------------------------------
-
-private val Blue = Color(0xFF2878E5)
-private val Background = Color(0xFFF6F8FC)
-private val Dark = Color(0xFF202B3C)
-private val Muted = Color(0xFF758195)
-
-// ----------------------------------------------------
-// MAIN ACTIVITY
-// ----------------------------------------------------
+import androidx.activity.enableEdgeToEdge
+import com.njwebdesigning.bookping.ui.theme.BookPingTheme
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.text.style.TextAlign
 
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        enableEdgeToEdge()
+
         OpacSyncScheduler.schedule(this)
 
         setContent {
-            MaterialTheme {
+            BookPingTheme(
+                darkTheme = isSystemInDarkTheme(),
+                dynamicColor = true
+            ) {
                 NotificationPermissionHandler()
                 BookPingApp()
             }
@@ -167,12 +163,18 @@ fun BookPingApp() {
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Background
+        color = MaterialTheme.colorScheme.background
     ) {
 
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(20.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .imePadding(),
+            contentPadding = PaddingValues(
+                horizontal = 20.dp,
+                vertical = 16.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
@@ -184,12 +186,12 @@ fun BookPingApp() {
                         text = "BookPing",
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Dark
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Text(
                         text = "Your library companion",
-                        color = Muted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp
                     )
                 }
@@ -201,7 +203,7 @@ fun BookPingApp() {
                 Card(
                     shape = RoundedCornerShape(18.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color.White
+                        containerColor = MaterialTheme.colorScheme.surface
                     )
                 ) {
 
@@ -215,7 +217,7 @@ fun BookPingApp() {
                         Text(
                             text = "KIOT Library",
                             fontWeight = FontWeight.SemiBold,
-                            color = Dark
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         OutlinedTextField(
@@ -285,7 +287,7 @@ fun BookPingApp() {
                             enabled = memberId.isNotBlank() && !isSyncing,
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Blue
+                                containerColor = MaterialTheme.colorScheme.primary
                             )
                         ) {
 
@@ -293,7 +295,7 @@ fun BookPingApp() {
 
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(18.dp),
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.surface,
                                     strokeWidth = 2.dp
                                 )
 
@@ -315,12 +317,12 @@ fun BookPingApp() {
                             text = syncMessage,
                             fontSize = 12.sp,
                             color = when {
-                                isSyncing -> Blue
+                                isSyncing -> MaterialTheme.colorScheme.primary
                                 syncMessage.startsWith("Sync failed") ->
                                     Color(0xFFD32F2F)
                                 syncMessage.startsWith("Sync successful") ->
                                     Color(0xFF168447)
-                                else -> Muted
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
                             }
                         )
                     }
@@ -336,7 +338,7 @@ fun BookPingApp() {
                         text = "Your library overview",
                         fontSize = 19.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Dark
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Row(
@@ -374,32 +376,42 @@ fun BookPingApp() {
                     text = "Currently borrowed",
                     fontSize = 19.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Dark
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
             // BOOK LIST
+
             if (activeBooks.isEmpty()) {
 
                 item {
-
                     Card(
-                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = Color.White
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
                         )
                     ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(28.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                text = "No books currently borrowed",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
 
-                        Text(
-                            text = if (lastSyncCount > 0) {
-                                "OPAC found $lastSyncCount book(s), but no active books are currently visible in Room. Check repository synchronization."
-                            } else {
-                                "No books found. Tap Sync now to check your library."
-                            },
-                            modifier = Modifier.padding(18.dp),
-                            color = Muted,
-                            fontSize = 13.sp
-                        )
+                            Text(
+                                text = "You haven't borrowed any books from KIOT Library yet. Your books will appear here after synchronization.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
 
@@ -414,13 +426,14 @@ fun BookPingApp() {
                 }
             }
 
+
             // NOTIFICATION SETTINGS
             item {
 
                 Card(
                     shape = RoundedCornerShape(18.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color.White
+                        containerColor = MaterialTheme.colorScheme.surface
                     )
                 ) {
 
@@ -475,7 +488,7 @@ fun BookPingApp() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 10.dp),
-                    color = Muted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp
                 )
 
@@ -514,18 +527,18 @@ fun NotificationSettingsSection(
             text = "Reminder settings",
             fontWeight = FontWeight.Bold,
             fontSize = 17.sp,
-            color = Dark
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         Text(
             text = "Remind me before the due date",
-            color = Muted,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 13.sp
         )
 
         Text(
             text = "${reminderDays.toInt()} days before",
-            color = Blue,
+            color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.SemiBold
         )
 
@@ -538,17 +551,17 @@ fun NotificationSettingsSection(
             steps = 28
         )
 
-        HorizontalDivider(color = Color(0xFFEDF0F5))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
         Text(
             text = "Repeat notification",
-            color = Muted,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 13.sp
         )
 
         Text(
             text = "Every ${repeatHours.toInt()} hours",
-            color = Blue,
+            color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.SemiBold
         )
 
@@ -573,18 +586,18 @@ fun NotificationSettingsSection(
             Text("Save Notification Settings")
         }
 
-        HorizontalDivider(color = Color(0xFFEDF0F5))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
         Text(
             text = "Persistent notification",
             fontWeight = FontWeight.SemiBold,
-            color = Dark
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         Text(
             text = "Notification remains ongoing until the book is returned.",
             fontSize = 12.sp,
-            color = Muted
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -618,7 +631,7 @@ fun SyncedBookCard(book: BookEntity) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
 
@@ -638,7 +651,7 @@ fun SyncedBookCard(book: BookEntity) {
                 Text(
                     text = "KIOT LIBRARY",
                     fontSize = 11.sp,
-                    color = Muted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Bold
                 )
 
@@ -664,7 +677,7 @@ fun SyncedBookCard(book: BookEntity) {
                         color = if (isOverdue) {
                             Color(0xFFD32F2F)
                         } else {
-                            Blue
+                            MaterialTheme.colorScheme.primary
                         },
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
@@ -676,17 +689,17 @@ fun SyncedBookCard(book: BookEntity) {
                 text = book.title,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
-                color = Dark
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Text(
                 text = "Accession Number: ${book.accessionNumber}",
-                color = Muted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp
             )
 
             HorizontalDivider(
-                color = Color(0xFFEDF0F5)
+                color = MaterialTheme.colorScheme.outlineVariant
             )
 
             Row(
@@ -713,7 +726,7 @@ fun SyncedBookCard(book: BookEntity) {
                 Text(
                     text = "Return your book on or before $dueDate.",
                     modifier = Modifier.padding(12.dp),
-                    color = Blue,
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 12.sp
                 )
             }
@@ -736,7 +749,7 @@ fun SummaryCard(
         modifier = modifier,
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
 
@@ -749,13 +762,13 @@ fun SummaryCard(
                 text = value,
                 fontSize = 25.sp,
                 fontWeight = FontWeight.Bold,
-                color = Blue
+                color = MaterialTheme.colorScheme.primary
             )
 
             Text(
                 text = title,
                 fontSize = 11.sp,
-                color = Muted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -779,14 +792,14 @@ fun DateInfo(
 
         Text(
             text = label,
-            color = Muted,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold
         )
 
         Text(
             text = date,
-            color = Dark,
+            color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.SemiBold,
             fontSize = 13.sp
         )

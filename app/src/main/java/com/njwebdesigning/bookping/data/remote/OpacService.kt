@@ -3,7 +3,6 @@ package com.njwebdesigning.bookping.data.remote
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.CookieJar
 import okhttp3.FormBody
 import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
@@ -55,6 +54,7 @@ class OpacService {
             }
 
             // STEP 1: GET OPAC page
+
             val getRequest = Request.Builder()
                 .url(OPAC_URL)
                 .header(
@@ -82,6 +82,7 @@ class OpacService {
                 }
 
             // STEP 2: Extract security token
+
             val initialDocument = Jsoup.parse(
                 initialHtml,
                 OPAC_URL
@@ -95,10 +96,11 @@ class OpacService {
                 ?.takeIf { it.isNotBlank() }
                 ?: error(
                     "OPAC security token not found. " +
-                            "Check whether the OPAC login/page is accessible."
+                            "Check whether the OPAC page is accessible."
                 )
 
             // STEP 3: Submit member ID
+
             val formBody = FormBody.Builder()
                 .add("MemberID", memberId.trim())
                 .add("__RequestVerificationToken", token)
@@ -133,17 +135,53 @@ class OpacService {
                 }
 
             // STEP 4: Parse returned HTML
+
             val document = Jsoup.parse(
                 responseHtml,
                 OPAC_URL
             )
 
-            // Find the correct book table by its headers
+            val pageText = document.body()
+                .text()
+                .replace(Regex("\\s+"), " ")
+                .trim()
+
+            val normalizedText = pageText.lowercase(Locale.ROOT)
+
+            // IMPORTANT:
+            // An empty circulation result is a successful response,
+            // not a parsing error.
+
+            val noBooksMessages = listOf(
+                "no books found under circulation for the member",
+                "no books found",
+                "no books are currently issued"
+            )
+
+            if (noBooksMessages.any {
+                    normalizedText.contains(it)
+                }
+            ) {
+                return@withContext emptyList()
+            }
+
+            // STEP 5: Find the book table using its headers
+
             val bookTable = document.select("table")
                 .firstOrNull { table ->
 
-                    val headers = table.select("thead th")
-                        .map { it.text().trim() }
+                    val headerCells = table.select(
+                        "thead th, thead td"
+                    ).ifEmpty {
+                        table.select("tr")
+                            .firstOrNull()
+                            ?.select("th, td")
+                            .orEmpty()
+                    }
+
+                    val headers = headerCells.map {
+                        it.text().trim()
+                    }
 
                     headers.any {
                         it.contains(
@@ -157,27 +195,28 @@ class OpacService {
                         )
                     }
                 }
-                ?: error(
-                    "Book table not found in OPAC response.\n" +
-                            "Page title: ${document.title()}\n" +
-                            "Final URL: ${document.location()}\n" +
-                            "Response preview: ${
-                                document.body()?.text()?.take(500)
-                            }"
-                )
 
-            // STEP 5: Extract table headers
-            val headers = bookTable
-                .select("thead th")
+            if (bookTable == null) {
+                error(
+                    "Unable to recognize the OPAC response. " +
+                            "The page did not contain a book table " +
+                            "or a recognized empty-book message."
+                )
+            }
+
+            // STEP 6: Extract table headers
+
+            val headerRow = bookTable.select("thead tr")
+                .firstOrNull()
+                ?: bookTable.select("tr").firstOrNull()
+                ?: error("OPAC table header not found")
+
+            val headers = headerRow.select("th, td")
                 .map { it.text().trim() }
 
             fun columnIndex(name: String): Int {
-
                 val index = headers.indexOfFirst {
-                    it.contains(
-                        name,
-                        ignoreCase = true
-                    )
+                    it.contains(name, ignoreCase = true)
                 }
 
                 if (index < 0) {
@@ -193,8 +232,12 @@ class OpacService {
             val issueIndex = columnIndex("Issue Date")
             val dueIndex = columnIndex("Due Date")
 
-            // STEP 6: Convert table rows into OpacBook
+            // STEP 7: Extract book rows
+
             val rows = bookTable.select("tbody tr")
+                .ifEmpty {
+                    bookTable.select("tr").drop(1)
+                }
 
             rows.mapNotNull { row ->
 
@@ -216,15 +259,11 @@ class OpacService {
 
                 OpacBook(
                     library = cells[libraryIndex].text().trim(),
-
                     accessionNumber = accession,
-
                     title = title,
-
                     issueDateMillis = parseOpacDate(
                         cells[issueIndex].text()
                     ),
-
                     dueDateMillis = parseOpacDate(
                         cells[dueIndex].text()
                     )
@@ -232,7 +271,8 @@ class OpacService {
             }
         }
 
-    // STEP 7: Convert OPAC date into milliseconds
+    // STEP 8: Convert OPAC date into milliseconds
+
     private fun parseOpacDate(value: String): Long {
 
         val formatter = SimpleDateFormat(
